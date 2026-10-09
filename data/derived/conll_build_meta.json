@@ -1,0 +1,8 @@
+{
+ "n_excluded": 107,
+ "n_rows": {
+  "flagged": 2782,
+  "incidental": 284
+ },
+ "changed_outside_delta": 0
+}

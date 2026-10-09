@@ -1,0 +1,154 @@
+{
+ "A": {
+  "flagger": "openai_gpt-4o-2024-05-13",
+  "K": 19,
+  "NC": 4602,
+  "n_adjacent": 36,
+  "alpha": 0.05,
+  "true_certifiable": 0.9722222222222222,
+  "rows": [
+   {
+    "pi_C": 0.01,
+    "event_prob": 1.0,
+    "simultaneous_single": 1.0,
+    "simultaneous_adjacent_pairs": 1.0,
+    "width_single": 0.1165530170458228,
+    "width_pair": 0.21087171032404847,
+    "certified_adjacent": 0.0603888888888889,
+    "wrongly_certified": 0.0,
+    "frac_reps_no_sampled_error": 0.836
+   },
+   {
+    "pi_C": 0.02,
+    "event_prob": 1.0,
+    "simultaneous_single": 1.0,
+    "simultaneous_adjacent_pairs": 1.0,
+    "width_single": 0.06454996834133525,
+    "width_pair": 0.12215532958248786,
+    "certified_adjacent": 0.09429166666666668,
+    "wrongly_certified": 0.0,
+    "frac_reps_no_sampled_error": 0.6865
+   },
+   {
+    "pi_C": 0.05,
+    "event_prob": 1.0,
+    "simultaneous_single": 1.0,
+    "simultaneous_adjacent_pairs": 1.0,
+    "width_single": 0.03183507082068234,
+    "width_pair": 0.06093869263563509,
+    "certified_adjacent": 0.11108333333333335,
+    "wrongly_certified": 0.0,
+    "frac_reps_no_sampled_error": 0.3875
+   },
+   {
+    "pi_C": 0.1,
+    "event_prob": 1.0,
+    "simultaneous_single": 1.0,
+    "simultaneous_adjacent_pairs": 1.0,
+    "width_single": 0.02036409458711617,
+    "width_pair": 0.03905513794092931,
+    "certified_adjacent": 0.1820277777777778,
+    "wrongly_certified": 0.0,
+    "frac_reps_no_sampled_error": 0.127
+   },
+   {
+    "pi_C": 0.2,
+    "event_prob": 0.985,
+    "simultaneous_single": 0.985,
+    "simultaneous_adjacent_pairs": 1.0,
+    "width_single": 0.01347506693190144,
+    "width_pair": 0.02585935354280678,
+    "certified_adjacent": 0.3109583333333334,
+    "wrongly_certified": 0.0,
+    "frac_reps_no_sampled_error": 0.015
+   },
+   {
+    "pi_C": 0.5,
+    "event_prob": 0.9625,
+    "simultaneous_single": 0.9625,
+    "simultaneous_adjacent_pairs": 1.0,
+    "width_single": 0.006795856454129826,
+    "width_pair": 0.013047787411096762,
+    "certified_adjacent": 0.49797222222222226,
+    "wrongly_certified": 0.0,
+    "frac_reps_no_sampled_error": 0.0
+   }
+  ]
+ },
+ "B:mistralai_mixtral-8x7b-32kseqlen": {
+  "flagger": "meta_llama-3-70b",
+  "K": 527,
+  "NC": 4251,
+  "n_adjacent": 35,
+  "alpha": 0.05,
+  "true_certifiable": 0.9714285714285714,
+  "rows": [
+   {
+    "pi_C": 0.01,
+    "event_prob": 0.9765,
+    "simultaneous_single": 0.9765,
+    "simultaneous_adjacent_pairs": 1.0,
+    "width_single": 0.29502959939740514,
+    "width_pair": 0.28249415500566577,
+    "certified_adjacent": 0.0006571428571428571,
+    "wrongly_certified": 0.0,
+    "frac_reps_no_sampled_error": 0.002
+   },
+   {
+    "pi_C": 0.02,
+    "event_prob": 0.962,
+    "simultaneous_single": 0.962,
+    "simultaneous_adjacent_pairs": 1.0,
+    "width_single": 0.2557130680071327,
+    "width_pair": 0.2740798218568003,
+    "certified_adjacent": 0.0010714285714285713,
+    "wrongly_certified": 0.0,
+    "frac_reps_no_sampled_error": 0.0
+   },
+   {
+    "pi_C": 0.05,
+    "event_prob": 0.959,
+    "simultaneous_single": 0.959,
+    "simultaneous_adjacent_pairs": 1.0,
+    "width_single": 0.21952680932177335,
+    "width_pair": 0.2601024534218778,
+    "certified_adjacent": 0.0013571428571428571,
+    "wrongly_certified": 0.0,
+    "frac_reps_no_sampled_error": 0.0
+   },
+   {
+    "pi_C": 0.1,
+    "event_prob": 0.9555,
+    "simultaneous_single": 0.9555,
+    "simultaneous_adjacent_pairs": 1.0,
+    "width_single": 0.1964430276291787,
+    "width_pair": 0.2434887237462777,
+    "certified_adjacent": 0.003014285714285714,
+    "wrongly_certified": 0.0,
+    "frac_reps_no_sampled_error": 0.0
+   },
+   {
+    "pi_C": 0.2,
+    "event_prob": 0.956,
+    "simultaneous_single": 0.956,
+    "simultaneous_adjacent_pairs": 1.0,
+    "width_single": 0.16717600791161943,
+    "width_pair": 0.21449469786807915,
+    "certified_adjacent": 0.01825714285714286,
+    "wrongly_certified": 0.0,
+    "frac_reps_no_sampled_error": 0.0
+   },
+   {
+    "pi_C": 0.5,
+    "event_prob": 0.953,
+    "simultaneous_single": 0.953,
+    "simultaneous_adjacent_pairs": 1.0,
+    "width_single": 0.1020887905060567,
+    "width_pair": 0.13341248847076184,
+    "certified_adjacent": 0.032971428571428575,
+    "wrongly_certified": 0.0,
+    "frac_reps_no_sampled_error": 0.0
+   }
+  ]
+ }
+}

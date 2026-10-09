@@ -1,0 +1,329 @@
+\documentclass[twoside,11pt]{article}
+
+\usepackage[preprint,abbrvbib]{jmlr2e}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{lastpage}
+\usepackage{float}
+\usepackage{placeins}
+
+\input{numbers}
+
+\newcommand{\Pn}{\mathbb{P}_n}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\1}{\mathbf{1}}
+\newcommand{\DR}{\mathrm{DR}}
+\newcommand{\Dset}{\Delta}
+\newcommand{\Cset}{C}
+\newcommand{\inv}{\perp}
+
+% ---- author details: fill in before submission ----
+\newcommand{\AuthorFull}{AUTHOR NAME}
+\newcommand{\AuthorShort}{AUTHOR SURNAME}
+\newcommand{\AuthorEmail}{author@example.org}
+\newcommand{\AuthorAddr}{Independent Researcher}
+\newcommand{\codeurl}{\url{https://github.com/unluckyjet/discrepant-resolution}}
+% ----------------------------------------------------
+\ShortHeadings{Discrepant Resolution in Benchmark Relabelling}{\AuthorShort}
+\firstpageno{1}
+
+\begin{document}
+
+\title{Only Checking Where the Model Disagrees:\\ Discrepant-Resolution Bias in Benchmark Relabelling}
+
+\author{\name \AuthorFull \email \AuthorEmail \\
+       \addr \AuthorAddr}
+
+\editor{TBD}
+
+\maketitle
+
+\begin{abstract}%
+Benchmark audits increasingly let models choose which labels experts re-examine: only items where a model disagrees with the label are adjudicated, and all other labels are kept. Medical statistics knows this design, discrepant analysis, to be biased; we work out its consequences for model evaluation. The accuracy such an audit reports differs from the true accuracy by an exact term in the label errors the flagger shares with the benchmark. The flagger is inflated by exactly the rate of these hidden errors, no model's advantage over the flagger is ever overstated, and models that fix the flagger's shared errors are penalised. Without adjudicating some agreeing items, accuracy is not identified; we give sharp sensitivity bounds. A two-phase design that also samples agreeing items is unbiased for every model, attains the minimax rate for the flagger once enough agreeing items are adjudicated, and gives simultaneous exact intervals of near-optimal width. On MMLU with HELM predictions for \nModels{} models, a simulated audit leaves \hiddenTopFiveMinA--\hiddenTopFiveMaxA{} of \nLabelErrA{} label errors uncorrected; with labels from a language model the flagger gains \inflMinB--\inflMaxB{} points. In the published CoNLL-2003 audit, \cnHiddenPct\% of label errors were never examined, yet token accuracies shift by at most \cnHiddenAbsMax{} points.
+\end{abstract}
+
+\begin{keywords}
+  discrepant analysis, benchmark evaluation, label noise, two-phase sampling, minimax lower bounds
+\end{keywords}
+
+%=====================================================================
+\section{Introduction}
+%=====================================================================
+
+Benchmark labels are wrong more often than benchmark users assume. When a model disagrees with a label, the model is sometimes right. This observation has turned into a standard audit procedure. A model, an algorithm such as confident learning, or a panel of models flags the items on which it disagrees with the benchmark label. Human experts re-examine only the flagged items, correct the labels they judge wrong, and keep the original label on every unflagged item. The corrected benchmark is then used to re-estimate the accuracy of models, often including the flagging model itself, and sometimes to re-rank them.
+
+This procedure is attractive because flagged items are where label errors concentrate, so a small adjudication budget finds many of them. It has a flaw that medical statistics identified decades ago under the name \emph{discrepant analysis}: an item on which the flagger and the label agree can still be wrong, and the procedure never looks at such items \citep{hadgu1996discrepancy,miller1998bias}. In diagnostic-test evaluation this flaw biases the new test's estimated sensitivity and specificity upwards. The standard remedy, the composite reference standard, also re-examines a sample of concordant results \citep{alonzo1999using}. Machine-learning benchmark audits differ from the clinical setting in two ways that make the problem worse. First, the quantity of interest is usually a \emph{ranking} of many models, not the accuracy of one test. Second, the flagger is often one of the models being ranked, or is closely related to them through shared training data and architectures.
+
+The design is not a historical curiosity. Of 22 published studies that relabel or audit machine-learning benchmarks, we find that 13 send human reviewers only to items selected by model outputs for at least part of the work, and none uses a sample of the items on which the models agreed to correct the accuracies it reports (Section~\ref{sec:practice}).
+
+This paper works out what a discrepant-resolution (DR) audit measures, when it misleads, and how to fix it at a small extra cost. Our contributions are as follows.
+
+\begin{enumerate}
+\item \textbf{An exact bias identity} (Section~\ref{sec:bias}). For any flagging rule and any model, the DR accuracy minus the true accuracy equals the mass of hidden errors (items that are unflagged and mislabelled) on which the model repeats the wrong label, minus the mass on which it gives the correct answer. Three consequences follow. The flagger's accuracy is inflated by exactly the hidden-error rate, the largest inflation possible. DR never overstates any model's advantage over the flagger. Models that correct the flagger's shared errors are penalised (\emph{lock-in}).
+\item \textbf{Non-identification and sensitivity analysis} (Section~\ref{sec:ident}). DR data alone cannot determine any model's accuracy. Under an assumed bound $\varepsilon$ on the concordant label-error rate we derive sharp identified sets for accuracies and pairwise differences, which lets readers re-analyse published audits.
+\item \textbf{Two-phase designs and their limits} (Section~\ref{sec:twophase}). We analyse a design that also adjudicates a random fraction of concordant items, together with a difference estimator that uses the original label as a proxy. The estimator is design-unbiased for every model, including models evaluated after the audit. We give its exact variance, an unbiased variance estimator and the Neyman allocation; intervals for the rare-error regime follow in contribution~4. For the flagger's accuracy we prove a minimax lower bound of order $\gamma\min\{\varepsilon,\sqrt{\varepsilon/m}\}$, where $\gamma$ is the fraction of concordant items, $\varepsilon$ the concordant label-error rate and $m$ the number of concordant items adjudicated. The two-phase estimator attains this rate when $m\ge1/\varepsilon$; below that, no design does better than the order $\gamma\varepsilon$ error of DR itself.
+\item \textbf{Simultaneous exact intervals and a decision rule} (Sections~\ref{sec:simultaneous}--\ref{sec:rule}). A single exact hypergeometric bound on the hidden-error count, propagated through the identified set, gives finite-sample intervals for all accuracies and all pairwise differences at once, and hence certified ranking orders. In the rare-error regime their width is of order $\gamma\log(1/\alpha)/m$, and a matching lemma shows that, for the flagger and even when there are no hidden errors, no valid interval can be narrower up to constants. A per-model comparison with DR yields a pilot-free procedure: sample $m$ concordant items, and if no error appears, report DR with the sensitivity bounds at $\varepsilon\approx3/m$.
+\item \textbf{Evidence on real models and labels} (Section~\ref{sec:empirical}). MMLU-Redux re-annotated a random sample of MMLU independently of any model \citep{gema2025are}. Combined with HELM's per-item predictions for \nModels{} language models \citep{liang2023holistic}, it lets us simulate the audit that a DR study would have run and compare it with the truth. We also re-analyse a published DR audit, that of CoNLL-2003 by \citet{reiss2020identifying}, against the independent full re-check CoNLL++ \citep{wang2019crossweigh}.
+\end{enumerate}
+
+Section~\ref{sec:practice} reviews how published relabelling studies adjudicate. Section~\ref{sec:related} discusses related work and Section~\ref{sec:discussion} gives practical recommendations. Proofs are in Appendix~\ref{app:proofs}. Code, derived data and the literature coding are available at \codeurl.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig_slope.pdf}
+\caption{Discrepant resolution favours the flagger. The benchmark is the \nItems{} MMLU-Redux items, labelled by Mixtral 8x7B (\errRateBmain\% label errors); the reference labels come from a random human re-annotation. (a)~True accuracy against DR-estimated accuracy for the ten most accurate models when Llama~3~70B is the flagger. The flagger moves from rank \llamaTrueRankB{} to rank \llamaDrRankB. (b)~Ranks gained under DR for each of the 36 possible single-model flaggers, against the flagger's true rank. The gain is zero only for the most accurate model and for the weakest ones, which cannot pass the models above them.}
+\label{fig:slope}
+\end{figure}
+
+%=====================================================================
+\section{Setup}
+\label{sec:setup}
+%=====================================================================
+
+\paragraph{Items, labels and models.} A benchmark has $n$ items indexed by $i\in[n]$. Each item has an original label $L_i\in[c]$ and a reference label $Y_i\in[c]$, the label that an adjudicator would assign; we write $c\ge 2$ for the number of classes. Models $k=1,\dots,K$ make predictions $M_{ik}\in[c]\cup\{\inv\}$, where $\inv$ denotes an invalid output that matches no label. For a property $A_i$ of items we write $\Pn(A)=n^{-1}\sum_{i}\1\{A_i\}$, the proportion of items with that property. Until Section~\ref{sec:lower} the items are fixed and all randomness comes from the adjudication design. The target of evaluation is the accuracy against the reference label,
+\[
+\theta_k=\Pn(M_k=Y),
+\]
+while the \emph{naive} accuracy is $\theta^L_k=\Pn(M_k=L)$. The reference label stands for whatever the adjudication process returns; Remark~\ref{rem:adjudicator} discusses imperfect adjudicators.
+
+\paragraph{Discrepant resolution.} An audit chooses a set of flagged (\emph{discordant}) items $\Dset\subseteq[n]$, adjudicates exactly those items, and produces resolved labels
+\[
+D_i=\begin{cases}Y_i, & i\in\Dset,\\ L_i, & i\in\Cset=[n]\setminus\Dset.\end{cases}
+\]
+Items in $\Cset$ are \emph{concordant}. The DR accuracy of model $k$ is $\theta^\DR_k=\Pn(M_k=D)$. The main case is a \emph{single flagger} $f$, one of the models, with $\Dset=\{i:M_{if}\neq L_i\}$. A \emph{panel} $G$ of flaggers with the union rule uses $\Dset_G=\bigcup_{g\in G}\{i:M_{ig}\ne L_i\}$, flagging an item if any panel member disagrees with its label. Most results hold for an arbitrary $\Dset$, which covers confident learning and other flagging algorithms.
+
+\paragraph{Hidden errors.} The central object is the set of \emph{hidden errors}, the mislabelled items that the audit never examines:
+\[
+J=\{i\in\Cset: L_i\neq Y_i\}.
+\]
+For a single flagger, $J=\{i: M_{if}=L_i\neq Y_i\}$ is the set of label errors that the flagger reproduces. If flagger and benchmark labels erred independently and a wrong answer chose among the $c-1$ wrong options uniformly, $\Pn(J)$ would be about $\Pn(L\neq Y)\,\Pn(M_f\neq Y)/(c-1)$. Section~\ref{sec:empirical} shows that real hidden-error rates are several times larger.
+
+%=====================================================================
+\section{What discrepant resolution measures}
+\label{sec:bias}
+%=====================================================================
+
+\begin{proposition}[Bias identity]\label{prop:bias}
+For any flagged set $\Dset$ and any model $k$,
+\begin{equation}\label{eq:bias}
+\theta^\DR_k-\theta_k \;=\; \Pn(J,\,M_k=L)\;-\;\Pn(J,\,M_k=Y).
+\end{equation}
+The naive bias is $\theta^L_k-\theta_k=\Pn(L\neq Y, M_k=L)-\Pn(L\neq Y, M_k=Y)$. DR therefore removes exactly the part of the naive bias that comes from flagged items and leaves the part from hidden errors untouched.
+\end{proposition}
+
+The identity is elementary (Appendix~\ref{app:proofs}), but it has sharp consequences. The bias depends on the audit only through $J$. On each hidden error, a model that repeats the wrong label gains a point it should not have, and a model that answers correctly loses a point it should have. Models that agree with the flagger on its errors therefore gain, and models that do better than the flagger lose.
+
+\begin{corollary}[The flagger receives the largest inflation]\label{cor:flagger}
+For a single flagger $f$, $\theta^\DR_f-\theta_f=\Pn(J)$, and every model $k$ satisfies $-\Pn(J)\le\theta^\DR_k-\theta_k\le\Pn(J)$.
+\end{corollary}
+
+\begin{corollary}[DR never overstates an advantage over the flagger]\label{cor:advantage}
+For a single flagger $f$ and any model $k$,
+\begin{equation}\label{eq:advantage}
+\big(\theta^\DR_k-\theta^\DR_f\big)-\big(\theta_k-\theta_f\big)\;=\;-\Pn(J, M_k\neq L)-\Pn(J,M_k=Y)\;\le\;0 .
+\end{equation}
+Hence DR ranks the flagger strictly above a truly more accurate model $k$ if and only if
+\[
+0<\theta_k-\theta_f<\Pn(J,M_k\neq L)+\Pn(J,M_k=Y).
+\]
+\end{corollary}
+
+The right-hand side of the inversion condition counts each hidden error that model $k$ answers correctly twice: once because $k$ loses it and once because the flagger gains it. A model that is better than the flagger exactly on the flagger's own blind spots is the one most likely to be ranked below it. Corollary~\ref{cor:advantage} also gives a usable one-sided statement. When a DR audit reports that model $k$ beats the flagger by $x$ points, the true advantage is at least $x$. When it reports that the flagger beats $k$, that conclusion may be an artefact of the design.
+
+\begin{proposition}[Panels and lock-in]\label{prop:panel}
+Let $G$ be a panel with the union rule and $J_G=\{i: M_{ig}=L_i\ \forall g\in G,\ L_i\neq Y_i\}$.
+\begin{enumerate}
+\item[(a)] If $G\subseteq G'$, then $J_{G'}\subseteq J_G$ and $\Dset_G\subseteq\Dset_{G'}$: larger panels leave fewer hidden errors but adjudicate more items.
+\item[(b)] Every panel member $g\in G$ has DR bias exactly $\Pn(J_G)$. Consequently DR preserves every accuracy difference between panel members; the distortion falls on comparisons between members and non-members.
+\item[(c)] A model $k\notin G$ has DR bias $\Pn(J_G,M_k=L)-\Pn(J_G,M_k=Y)$. This bias is negative whenever $k$ answers correctly on more of the panel's shared errors than it repeats.
+\end{enumerate}
+\end{proposition}
+
+Part (c) is the lock-in effect. A benchmark cleaned by DR with today's models keeps exactly the errors those models share. A later model that has learned the right answers is scored as wrong on them, so it is penalised relative to the models that cleaned the benchmark. Part (a) states the cost of escaping lock-in through larger panels: the adjudicated set grows towards the whole benchmark, which removes the savings that motivated DR in the first place (Section~\ref{sec:emp-bias}).
+
+\begin{remark}[Imperfect adjudication and other flagging rules]\label{rem:adjudicator}
+If adjudication returns $A_i$, possibly different from the truth, all statements hold with $Y$ replaced by $A$, and accuracy is then measured against adjudicated labels. Measured against the truth, the same computation as in Proposition~\ref{prop:bias} gives the exact decomposition
+\[
+\theta^\DR_k-\theta_k=\big[\Pn(J,M_k=L)-\Pn(J,M_k=Y)\big]+\big[\Pn(\Dset,M_k=A)-\Pn(\Dset,M_k=Y)\big],
+\]
+a hidden-error term plus an adjudicator term. When $A$ and $Y$ come from two independent relabelings, the second term measures their disagreement and need not indicate an error of $A$. Errors of the adjudicator are a separate problem that no choice of which items to adjudicate can remove. Proposition~\ref{prop:bias} uses no property of $\Dset$, so it covers majority-vote panels, confident learning, and thresholds on model confidence. Corollaries~\ref{cor:flagger} and~\ref{cor:advantage} use only the fact that the flagger agrees with $L$ on $\Cset$.
+\end{remark}
+
+%=====================================================================
+\section{Identification and sensitivity analysis}
+\label{sec:ident}
+%=====================================================================
+
+A DR audit observes $O=\big(L,\,(M_k)_{k\le K},\,\Dset,\,(Y_i)_{i\in\Dset}\big)$. The reference labels of concordant items are never observed, and they are exactly what the bias depends on. Without some restriction on them, no amount of DR data pins down any accuracy.
+
+\begin{theorem}[Sharp identified set]\label{thm:ident}
+Fix $\eta\ge0$ and let $\mathcal Y(\eta)$ be the set of label vectors $y\in[c]^n$ that agree with $Y$ on $\Dset$ and satisfy $\Pn(i\in\Cset: y_i\neq L_i)\le\eta$. Write $\bar\eta=\lfloor \eta n\rfloor/n$ and $\theta_k(y)=\Pn(M_k=y)$. Then
+\[
+\{\theta_k(y): y\in\mathcal Y(\eta)\} = \Big[\theta^\DR_k-\min\{\bar\eta,\Pn(\Cset,M_k=L)\},\;\; \theta^\DR_k+\min\{\bar\eta,\Pn(\Cset,M_k\notin\{L,\inv\})\}\Big]\cap\tfrac1n\mathbb Z,
+\]
+so the bounds are sharp. For a pair of models $(k,l)$ the sharp bounds on $\theta_k-\theta_l$ are obtained by the greedy rule of Appendix~\ref{app:proofs}. Without a restriction ($\eta=\Pn(\Cset)$), the identified interval for $\theta_k$ has width $\Pn(\Cset, M_k\neq\inv)$, the share of concordant items on which $k$ gives a valid answer.
+\end{theorem}
+
+The parameter $\varepsilon=\eta/\Pn(\Cset)$, an upper bound on the label-error rate among concordant items, is the natural sensitivity parameter. Theorem~\ref{thm:ident} turns any published DR result into a family of intervals indexed by $\varepsilon$. A reader can then ask how large $\varepsilon$ must be before a claimed ranking could be reversed. By Corollary~\ref{cor:advantage}, the identified set for the difference $\theta_k-\theta_f$ between a model and the flagger always has the DR value as its lower endpoint.
+
+%=====================================================================
+\section{Two-phase designs}
+\label{sec:twophase}
+%=====================================================================
+
+The non-identification result points to the fix: adjudicate some concordant items. Let each item $i$ be adjudicated independently with a known probability $\pi_i>0$ that may depend on phase-one data (the labels, the model predictions, and membership in $\Dset$) but not on $Y$. Let $R_i\in\{0,1\}$ indicate adjudication. The main case is stratified Poisson sampling with $\pi_i=\pi_\Dset$ on $\Dset$ and $\pi_i=\pi_C$ on $\Cset$. Define
+\[
+r_{ik}=\1\{M_{ik}=Y_i\}-\1\{M_{ik}=L_i\}\in\{-1,0,1\},
+\qquad
+\hat\theta_k=\theta^L_k+\frac1n\sum_{i=1}^n\frac{R_i}{\pi_i}\,r_{ik}.
+\]
+The estimator starts from the naive accuracy and adds an inverse-probability-weighted correction computed on the adjudicated items. It is the difference estimator of survey sampling with the original label as auxiliary variable \citep{sarndal1992model}. It is also prediction-powered inference with the original label playing the role of the prediction \citep{angelopoulos2023prediction}. Note that $r_{ik}\neq0$ only on mislabelled items. With $\pi_\Dset=1$, $\hat\theta_k$ equals the DR accuracy minus an unbiased estimate of its bias~\eqref{eq:bias}.
+
+\begin{theorem}[Unbiasedness and variance]\label{thm:unbiased}
+Under the design above, for every model $k$,
+\[
+\E[\hat\theta_k]=\theta_k,\qquad
+\mathrm{Var}(\hat\theta_k)=\frac1{n^2}\sum_{i=1}^n\frac{1-\pi_i}{\pi_i}\,r_{ik}^2,
+\]
+and $\hat v_k=n^{-2}\sum_i R_i(1-\pi_i)\pi_i^{-2}r_{ik}^2$ is unbiased for the variance. The same statements hold for pairwise differences, with $r_{ik}$ replaced by $r_{ik}-r_{il}$.
+\end{theorem}
+
+Two features matter in practice. First, the design probabilities do not involve the evaluated model. The same adjudicated sample therefore yields unbiased estimates for every model, including models evaluated after the audit, provided those models are not trained or selected using the released adjudications. A DR-cleaned benchmark is biased for them by Proposition~\ref{prop:panel}(c). Second, $r_{ik}^2=\1\{L_i\neq Y_i,\,M_{ik}\in\{L_i,Y_i\}\}$, so the variance is driven entirely by the label errors in each stratum. When label errors are rare, many replicates of the phase-two sample contain none of them, $\hat v_k=0$, and Wald intervals undercover badly (Section~\ref{sec:emp-twophase}). Section~\ref{sec:simultaneous} gives exact intervals for that regime. For comparison, our tables also report a per-model interval that bounds the proportions of concordant items with $r_{ik}=\pm1$ by Bonferroni-combined Clopper--Pearson intervals (details in the code); it is superseded by Theorem~\ref{thm:simultaneous}.
+
+\begin{proposition}[Neyman allocation]\label{prop:neyman}
+Consider strata $h\in\{\Dset,\Cset\}$ with sizes $N_h$ and an expected budget $\sum_h N_h\pi_h=B$. Let $A_h=\sum_{k}\sum_{i\in h}r_{ik}^2$. The design that minimises $\sum_k\mathrm{Var}(\hat\theta_k)$ is $\pi_h=\min\{1,\lambda\sqrt{A_h/N_h}\}$, with $\lambda$ chosen to meet the budget. When no cap binds, $\pi_\Cset/\pi_\Dset=\sqrt{e_\Cset/e_\Dset}$, where $e_h=A_h/(K N_h)$ is the average rate of informative label errors in stratum $h$.
+\end{proposition}
+
+The optimal design does not in general adjudicate every flagged item: that is natural for cleaning a benchmark, but not for estimating accuracies, and conflating the two goals is the root of the problem studied here. The rates $e_h$ are unknown before adjudication and can be guessed from earlier audits. Theorem~\ref{thm:unbiased} assumes inclusion probabilities fixed by the phase-one data. If the stratum error rates are estimated from adjudications in the same sample and then used to set later probabilities, the design becomes outcome-dependent. The estimator stays unbiased if each item is weighted by its inclusion probability given the information available when it was selected, as in sequential and active designs \citep{zrnic2024active}, but the variance formula of Theorem~\ref{thm:unbiased} no longer applies as stated. We therefore use the oracle rates only to show what is achievable (Section~\ref{sec:emp-alloc}). Section~\ref{sec:rule} gives a procedure that needs no estimate of the rates.
+
+\subsection{Rate optimality}
+\label{sec:lower}
+
+How many concordant items must be adjudicated? For the flagger with $\pi_\Dset=1$ and $\pi_\Cset=m/|\Cset|$, Theorem~\ref{thm:unbiased} gives
+\begin{equation}\label{eq:upper}
+\Big(\E\big[(\hat\theta_f-\theta_f)^2\big]\Big)^{1/2}=\gamma_n\sqrt{\frac{\varepsilon_n(1-\pi_\Cset)}{m}},
+\qquad \gamma_n=\Pn(\Cset),\ \ \varepsilon_n=\frac{|J|}{|\Cset|}.
+\end{equation}
+The next theorem shows that, once $m\ge1/\varepsilon$, no design or estimator can do better than this rate, even an adaptive design that chooses which concordant items to adjudicate after seeing earlier adjudications. To state it we move to a superpopulation model. Items are drawn independently from a distribution $P$ over $(X,L,M_1,\dots,M_K,Y)$, where $X$ collects any observed features. The flagger is model $f$, $\gamma=P(M_f=L)$, and $\varepsilon\ge P(L\neq Y\mid M_f=L)$ bounds the hidden-error rate.
+
+\begin{theorem}[Minimax lower bound]\label{thm:lower}
+Let $\mathcal P(\gamma,\varepsilon)$ be the set of distributions with $P(M_f=L)=\gamma$ and $P(L\ne Y\mid M_f=L)\le\varepsilon$. Consider any design that adjudicates all discordant items and selects concordant items for adjudication by any rule based on observed data, with at most $m$ concordant adjudications in expectation. Then, for $\varepsilon\le1/2$ and every $m\ge0$,
+\[
+\inf_{\hat\theta}\ \sup_{P\in\mathcal P(\gamma,\varepsilon)}\ \E_P\big|\hat\theta-\theta_f(P)\big|\;\ge\;\frac{\gamma}{16\,e}\min\Big\{\varepsilon,\sqrt{\frac{\varepsilon}{m}}\Big\},
+\]
+where the infimum is over all estimators based on the observed data, $e$ is Euler's number, and $\sqrt{\varepsilon/0}=\infty$.
+\end{theorem}
+
+Two regimes follow. When $m\ge1/\varepsilon$, the design error~\eqref{eq:upper} of the two-phase estimator matches the lower bound up to the constant $16e$, the factor $\sqrt{1-\pi_\Cset}$, and the replacement of $(\gamma,\varepsilon)$ by their empirical counterparts. For the superpopulation target $\theta_f(P)$ the estimator also incurs the $O(n^{-1/2})$ error of sampling the items, which is present even under full adjudication; Theorem~\ref{thm:lowerfp} below gives the matching statement for the finite-population target. When $m<1/\varepsilon$, the minimax risk is of order $\gamma\varepsilon$, the same order as the bias of DR itself. The two-phase estimator is then not optimal: its standard deviation $\gamma\sqrt{\varepsilon/m}$ exceeds $\gamma\varepsilon$, while the midpoint of the identified interval of Theorem~\ref{thm:ident} attains the order $\gamma\varepsilon$ if $\varepsilon$ is known. Scenario A of Section~\ref{sec:empirical} lies largely in this regime. DR itself corresponds to $m=0$, where the worst-case error of any estimator is at least $\gamma\varepsilon/2$ however many discordant items are adjudicated (Appendix~\ref{app:proofs}). The bound is stated for the flagger; for another model the rate depends on how often it repeats the hidden errors.
+
+The superpopulation statement leaves a gap: the design error~\eqref{eq:upper} concerns the accuracy $\theta_f$ of the fixed items, whereas Theorem~\ref{thm:lower} concerns $\theta_f(P)$. The next result closes it with a design-based bound for the finite-population target, uniformly over the possible configurations of hidden errors.
+
+\begin{theorem}[Design-based lower bound]\label{thm:lowerfp}
+Fix $n$ items with their labels $L$, predictions and flag set, and let $N_\Cset=|\Cset|$. Let $\mathcal J(\varepsilon)$ be the set of hidden-error configurations $J\subseteq\Cset$ with $|J|\le\varepsilon N_\Cset$, and let $\theta_f(J)$ be the flagger's accuracy when $J$ is the hidden-error set. Consider any design that adjudicates all discordant items and at most $m$ concordant items, selected by any rule based on observed data. Then, for $\varepsilon\le1/2$ and $m\ge2/\varepsilon$,
+\[
+\inf_{\hat\theta}\ \max_{J\in\mathcal J(\varepsilon)}\ \E\big|\hat\theta-\theta_f(J)\big|\;\ge\;\frac{N_\Cset-m}{n}\cdot\frac{1}{16\sqrt2\,e}\sqrt{\frac{\varepsilon}{m}}\;-\;e^{-\varepsilon N_\Cset/6},
+\]
+where the expectation is over the design.
+\end{theorem}
+
+Since $(N_\Cset-m)/n=\gamma_n(1-\pi_\Cset)$, this matches the design error~\eqref{eq:upper} of the two-phase estimator in its dependence on $\gamma_n$, $\varepsilon$ and $m$, for the same finite-population target. The exponential term is negligible whenever the expected number of hidden errors is more than a few dozen.
+
+\subsection{Simultaneous exact intervals}
+\label{sec:simultaneous}
+
+The Wald intervals of Theorem~\ref{thm:unbiased} need many sampled label errors. Practitioners, however, report pairwise comparisons and whole rankings. Moreover, in the regime $m<1/\varepsilon$ the minimax error is of the order $\gamma\varepsilon$ of the hidden-error mass itself (Theorem~\ref{thm:lower}). This suggests bounding that mass directly and propagating the bound through the identified set of Theorem~\ref{thm:ident}. Because every accuracy and every difference is a function of the same unknown concordant labels, a single confidence statement about those labels covers all of them at once.
+
+Assume $\pi_\Dset=1$ and Poisson sampling of concordant items. Let $S\subseteq\Cset$ be the sampled concordant items, $m=|S|$, $h=|\{i\in S:L_i\ne Y_i\}|$ the number of label errors found among them, and $K=|J|$ the unknown number of hidden errors. Write $\mathrm{HG}(h;N,K,m)$ for the hypergeometric distribution function: the probability of at most $h$ successes in a sample of $m$ drawn without replacement from $N$ items of which $K$ are successes. Define the exact upper confidence bound
+\[
+U=\max\{k:\ \mathrm{HG}(h;|\Cset|,k,m)>\alpha\},
+\]
+the set of items with known reference label $A=\Dset\cup S$, and the residual budget $B=U-h$. Let $\mathcal Y_B$ be the set of label vectors that agree with $Y$ on $A$ and differ from $L$ on at most $B$ items of $\Cset\setminus S$.
+
+\begin{theorem}[Simultaneous exact intervals]\label{thm:simultaneous}
+With probability at least $1-\alpha$, conditionally on $m$, the true label vector lies in $\mathcal Y_B$. Consequently, the intervals
+\[
+I_k=\Big[\min_{y\in\mathcal Y_B}\theta_k(y),\ \max_{y\in\mathcal Y_B}\theta_k(y)\Big],\qquad
+I_{kl}=\Big[\min_{y\in\mathcal Y_B}\big(\theta_k(y)-\theta_l(y)\big),\ \max_{y\in\mathcal Y_B}\big(\theta_k(y)-\theta_l(y)\big)\Big]
+\]
+contain $\theta_k$ and $\theta_k-\theta_l$ for all models $k$ and all pairs $(k,l)$ simultaneously with probability at least $1-\alpha$. They are computed exactly by the greedy rule of Theorem~\ref{thm:ident}, applied to the unsampled concordant items with budget $B$. In particular, every ordering $\theta_k>\theta_l$ certified by $\min I_{kl}>0$ is correct, simultaneously for all certified pairs, with probability at least $1-\alpha$.
+\end{theorem}
+
+No union bound over models or pairs is needed, because all intervals are derived from the single event $\{K\le U\}$. The intervals are exact in the sense of finite-sample, design-based coverage. They make no assumption about how hidden errors relate to model predictions, and they rely only on the randomisation of the concordant sample. Their width is controlled by the residual budget.
+
+\begin{proposition}[Width]\label{prop:width}
+For every model, $|I_k|\le2B/n$, and for every pair, $|I_{kl}|\le4B/n$. If no label error is found in the concordant sample ($h=0$), then $B=U\le|\Cset|\log(1/\alpha)/m$. The intervals are then contained in the sharp bounds of Theorem~\ref{thm:ident} at a concordant error rate of $\log(1/\alpha)/m$, which is about $3/m$ for $\alpha=0.05$.
+\end{proposition}
+
+When hidden errors are rare, the width is governed by the sampling margin $\log(1/\alpha)/m$ rather than by $\varepsilon$: if $m<1/\varepsilon$, an interval of width $\gamma\log(1/\alpha)/m$ is wider than the hidden-error mass $\gamma\varepsilon$ that it has to account for. This is not slack in the construction. The next lemma shows that every valid interval must be this wide, even when there are no hidden errors at all.
+
+\begin{lemma}[Width of valid intervals]\label{lem:width}
+Let $N=|\Cset|$, sample $m$ concordant items by simple random sampling, and let $k^\star=\max\{k:\binom{N-k}{m}/\binom{N}{m}\ge2\alpha\}$. Any interval procedure for the flagger's accuracy that has coverage at least $1-\alpha$ for every hidden-error configuration has, when $J=\emptyset$, expected width at least $(\tfrac12-\alpha)\,k^\star/n$. Moreover $k^\star\ge\lfloor (N-m+1)\,x/(1+x)\rfloor$ with $x=\log(1/(2\alpha))/m$, so the expected width is at least about $(\tfrac12-\alpha)\,\gamma_n\log(1/(2\alpha))/m$.
+\end{lemma}
+
+Proposition~\ref{prop:width} gives width at most $\gamma_n\log(1/\alpha)/m$ for the flagger when no error is sampled, which is always the case when $J=\emptyset$. The intervals of Theorem~\ref{thm:simultaneous} are therefore minimax-optimal in width among valid intervals, up to constants, in the rare-error regime. Point estimation and interval estimation differ here. An estimator can be within order $\gamma\varepsilon$ of the truth (Theorem~\ref{thm:lower}), but no procedure can certify that without an interval of width of order $\gamma/m$. When hidden errors are common, the residual budget stays of order $\gamma\varepsilon n$ unless $\pi_\Cset$ is close to one. The intervals then remain valid but are wide, and the Wald intervals of Theorem~\ref{thm:unbiased}, whose width shrinks like $\gamma\sqrt{\varepsilon/m}$, are the better tool. The two constructions are complementary and mirror the two regimes of the lower bound.
+
+\subsection{When is a concordant sample worth it?}
+\label{sec:rule}
+
+The flagger threshold $m>1/\varepsilon$ does not apply to every model, because the DR bias differs across models. With $\pi_\Dset=1$ and $\pi_\Cset=m/|\Cset|$, write $a_k=|J\cap\{M_k=L\}|/|\Cset|$ and $c_k=|J\cap\{M_k=Y\}|/|\Cset|$ for the rates at which model $k$ repeats and corrects the hidden errors.
+
+\begin{proposition}[Per-model comparison with DR]\label{prop:rule}
+The DR bias of model $k$ is $\gamma_n(a_k-c_k)$, and the root mean squared error of the two-phase estimator is $\gamma_n\sqrt{(1-\pi_\Cset)(a_k+c_k)/m}$. The two-phase estimator has the smaller error if and only if
+\[
+m>(1-\pi_\Cset)\,\frac{a_k+c_k}{(a_k-c_k)^2}.
+\]
+For the flagger, $a_f=\varepsilon_n$ and $c_f=0$, so the threshold is $(1-\pi_\Cset)/\varepsilon_n$. For a model that corrects about as many hidden errors as it repeats, DR is nearly unbiased and the threshold diverges.
+\end{proposition}
+
+Comparing mean squared errors, however, misses the main point. Whatever its error, a DR estimate carries no valid uncertainty statement: by Theorem~\ref{thm:ident}, DR data are compatible with any hidden-error mass up to $\Pn(\Cset)$, so no interval computed from DR data alone has guaranteed coverage. We therefore recommend the following procedure, which needs no pilot study.
+\begin{enumerate}
+\item Adjudicate all flagged items and a random sample of $m$ concordant items.
+\item Report the two-phase estimates. If no label error appears in the concordant sample, these coincide with the DR estimates.
+\item Report the simultaneous intervals of Theorem~\ref{thm:simultaneous}. If no error appears, they are no wider than the bounds of Theorem~\ref{thm:ident} at $\varepsilon=\log(1/\alpha)/m\approx3/m$ (Proposition~\ref{prop:width}).
+\item If many label errors are expected in the concordant sample, as with LLM-generated labels, also report the Wald intervals. The choice should be specified before the sample is drawn.
+\end{enumerate}
+
+%=====================================================================
+\section{How published relabelling studies adjudicate}
+\label{sec:practice}
+%=====================================================================
+
+\input{sec_practice}
+
+%=====================================================================
+\section{Empirical study}
+\label{sec:empirical}
+%=====================================================================
+
+\input{sec_empirical}
+
+%=====================================================================
+\section{Related work}
+\label{sec:related}
+%=====================================================================
+
+\input{sec_related}
+
+%=====================================================================
+\section{Discussion and recommendations}
+\label{sec:discussion}
+%=====================================================================
+
+\input{sec_discussion}
+
+\acks{To be completed by the author, including funding and competing-interest disclosures as required by JMLR.}
+
+\newpage
+\appendix
+\input{appendix}
+\FloatBarrier
+
+\vskip 0.2in
+\bibliography{refs}
+
+\end{document}

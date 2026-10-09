@@ -1,0 +1,162 @@
+\subsection{Data and scenarios}
+\label{sec:data}
+
+\paragraph{Reference labels.} MMLU-Redux 2.0 \citep{gema2025are} drew 100 questions uniformly at random from each of the 57 MMLU subjects \citep{hendrycks2021measuring}. Annotators then re-checked each question against external sources, independently of any model's output. This gives a sample of benchmark items whose labels were verified without regard to model disagreement, which is exactly what is needed to know the truth that a DR audit would miss. We keep the \nItems{} items whose reference label is determined:
+\begin{itemize}
+\item items annotated as correct, for which $Y=L$;
+\item items annotated as having a wrong ground truth together with a parseable corrected answer.
+\end{itemize}
+We exclude items with unclear questions or options, no correct answer, multiple correct answers, or an ``expert'' flag, as well as 17 items that could not be matched or parsed (Online Appendix). This leaves \nLabelErrA{} items with a wrong MMLU label (\errRateA\%).
+
+\paragraph{Model predictions.} HELM v1.3.0 \citep{liang2023holistic} publishes per-item predictions of \nModels{} language models on all MMLU subjects (5-shot, joint multiple-choice prompting). We match HELM instances to MMLU-Redux items on question and option text. Outputs that are not a bare option letter are counted as wrong, as HELM does.
+
+\paragraph{Scenarios.} In \emph{Scenario A} the benchmark labels are the original MMLU labels. In \emph{Scenario B} the benchmark's labels are produced by a language model. Such benchmarks exist: the MedCalc-Bench audit of \citet{ye2026scalable} recomputed the test labels with Gemini~2.5~Pro, had a physician review 50 instances sampled from the top of the disagreement ranking, and scored newer models against the recomputed labels, with physician labels substituted on the reviewed subset. We simulate this case by taking one HELM model's answers as $L$; that model is then removed from the evaluated set. We use four labelers: Mixtral 8x7B (the main case), Llama 2 70B, GPT-3.5 Turbo and Qwen1.5 72B. Their label-error rates against MMLU-Redux are \errRateBmin--\errRateBmax\%. In both scenarios the flagger is a single model, or a panel combined by the union rule. We simulate the DR audit exactly: flagged items receive their MMLU-Redux label and all other items keep $L$. Because all reference labels are known, we can also compute every model's true accuracy.
+
+\subsection{What discrepant resolution misses, and whom it favours}
+\label{sec:emp-bias}
+
+\begin{table}[t]
+\centering
+\scriptsize
+\input{tables/tab_scenarios}
+\caption{DR audits over all single-model flaggers. ``Hidden $|J|$'' is the number of label errors the flagger reproduces, which therefore stay uncorrected. ``Flagger inflation'' is $\theta^\DR_f-\theta_f$, which equals $\Pn(J)$ (Corollary~\ref{cor:flagger}). ``Flaggers favoured'' counts the flaggers that DR ranks above at least one truly more accurate model. ``Max ranks gained'' is the largest rank improvement of a flagger. ``$P(J)$/indep.'' is the hidden-error rate divided by the rate expected if flagger and label erred independently (Section~\ref{sec:setup}).}
+\label{tab:scenarios}
+\end{table}
+
+Table~\ref{tab:scenarios} summarises DR audits over every single-model flagger. Table~\ref{tab:flaggersA} details Scenario A for the six strongest flaggers and for union panels. Proposition~\ref{prop:bias} holds exactly for every model, flagger and scenario: our code checks the identity to machine precision.
+
+\paragraph{Scenario A: the original MMLU labels.} With one of the five most accurate models as flagger, a DR audit adjudicates \adjTopFiveMinA--\adjTopFiveMaxA{} items (15--19\% of the benchmark). It finds 80--84 of the \nLabelErrA{} label errors and leaves \hiddenTopFiveMinA--\hiddenTopFiveMaxA{} hidden. Over all \nModels{} possible flaggers, between \hiddenMinA{} and \hiddenMaxA{} label errors stay hidden. The flagger's accuracy is inflated by \inflMinA--\inflMaxA{} percentage points (pp). The hidden-error rate is a median \indepRatioA{} times the rate expected under independent errors.
+
+In this low-noise regime the distortions are small. No strong flagger overtakes a better model, and across all flaggers the largest rank gain is \rankGainA{} places (\favFlaggersA{} of \nModels{} flaggers overtake at least one better model). Panels of the most accurate models shrink the hidden set, but slowly. The top-10 panel still leaves \topTenHiddenA{} hidden errors after adjudicating \topTenAdjA{} items, and the union of all \nModels{} models leaves none but adjudicates \allPanelAdjA{} items (\allPanelAdjPctA\% of the benchmark), little less than a full re-annotation. Smaller panels chosen with hindsight can remove all hidden errors more cheaply, but choosing them requires knowing where the errors are.
+
+\begin{table}[t]
+\centering
+\scriptsize
+\input{tables/tab_flaggers_A}
+\caption{Scenario A (original MMLU labels, \nLabelErrA{} label errors among \nItems{} items): DR audits with the six most accurate models as single flaggers, and with union panels of the top 3, 5, 10 and all models. ``Inflation'' is the flagger's DR bias; for panels it is the largest bias among panel members, which equals $\Pn(J_G)$ (Proposition~\ref{prop:panel}). ``Inversions'' counts model pairs whose order DR reverses. Online Appendix Table~OA.1 lists all \nModels{} flaggers.}
+\label{tab:flaggersA}
+\end{table}
+
+\paragraph{Scenario B: a benchmark labelled by a language model.} When the labels come from a language model, hidden errors are common and DR's bias becomes large. Flagger inflation ranges from \inflMinB{} to \inflMaxB{}~pp. Between \favFlaggersBmin{} and \favFlaggersBmax{} of the 36 flaggers are ranked above at least one truly better model, and a flagger gains up to \rankGainBmin--\rankGainBmax{} places, depending on the labeler. The hidden-error rate is \indepRatioBmin--\indepRatioBmax{} times the independence prediction, because language models share their mistakes.
+
+Figure~\ref{fig:sweep} extends this to all \sweepN{} models as labelers. Their label-error rates range from \sweepErrMin\% (\sweepBestLabeler) to \sweepErrMax\%. Even the best labeler gives a median flagger inflation of \sweepBestMedInfl~pp and a largest rank gain of \sweepBestMaxGain. Across labelers, the median inflation ranges from \sweepMedInflMin{} to \sweepMedInflMax~pp, and at least \sweepFavMin{} of the 36 flaggers overtake a better model. The original MMLU labels sit far below all language-model labelers. The two outlying maxima of about 20~pp come from a near-duplicate pair: PaLM~2 Unicorn and Palmyra X v3 give the same answer on \dupAgree\% of items (all but \dupDiffer). When one labels and the other flags, the audit corrects almost nothing.
+
+Figure~\ref{fig:slope}(a) shows one audit: with Mixtral 8x7B labels and Llama~3~70B as flagger, DR inflates the flagger by \llamaInflB~pp and moves it from rank \llamaTrueRankB{} to rank \llamaDrRankB. Figure~\ref{fig:slope}(b) shows that rank gains are largest for flaggers of middling accuracy. Those flaggers have many truly better models to overtake and enough hidden errors to do it.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig_sweep.pdf}
+\caption{Labeler-strength sweep. Each blue point is a benchmark labelled by one of the \sweepN{} HELM models (Scenario B), audited by DR with each of the other 36 models as flagger; the red diamond is Scenario A. (a)~Median flagger inflation (dot) up to the largest (bar). (b)~Largest number of ranks gained by any flagger.}
+\label{fig:sweep}
+\end{figure}
+
+\subsection{Lock-in}
+\label{sec:emp-lockin}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig_lockin.pdf}
+\caption{Lock-in in Scenario B (Mixtral 8x7B labels). A panel of models released in 2023 cleans the benchmark by DR, and models released in 2024 are evaluated on the result. (a) Hidden errors and adjudicated items as the panel grows (panel order: GPT-3.5 Turbo, Llama 2 70B, Claude 2.1, PaLM 2 Bison, Claude Instant 1.2). (b) DR bias of the 2024 models. With a single flagger, the two strongest 2024 models, GPT-4o and Claude 3 Opus, are each underestimated by a net \lockGptOneB~pp.}
+\label{fig:lockin}
+\end{figure}
+
+Proposition~\ref{prop:panel}(c) predicts that models built after an audit are penalised on the errors the auditing models share. Figure~\ref{fig:lockin} tests this by cleaning the Scenario B benchmark with models released in 2023 and evaluating models released in 2024. With GPT-3.5 Turbo as the only flagger, \lockHiddenOneB{} label errors stay hidden. GPT-4o answers \lockGptCorrectOneB{} of them correctly and is scored wrong on each, costing it \lockGptCorrectPpOneB~pp. It repeats the wrong label on \lockGptRepeatOneB{} others and is credited for them (\lockGptRepeatPpOneB~pp), so it is underestimated by a net \lockGptOneB~pp. Claude~3~Opus is underestimated by the same net amount (\lockOpusCorrectOneB{} correct answers and \lockOpusRepeatOneB{} repetitions; the two differences coincide). Weaker 2024 models that repeat more of the hidden errors are instead overestimated. Growing the panel to \lockPanelLastB{} models reduces the hidden errors to \lockHiddenLastB{}, but doubles the adjudicated set from \lockAdjOneB{} to \lockAdjLastB{} items. Some bias remains for every 2024 model, now positive, because the surviving hidden errors are the ones most models share. In Scenario A the same experiment leaves \lockHiddenLastA{} hidden errors after adjudicating \lockAdjLastA{} items, and the effect is negligible.
+
+\subsection{A published audit: CoNLL-2003}
+\label{sec:emp-conll}
+
+\begin{table}[t]
+\centering
+\scriptsize
+\input{tables/tab_conll}
+\caption{Re-analysis of the published DR audit of CoNLL-2003 \citep{reiss2020identifying} against the independent full re-check CoNLL++ \citep{wang2019crossweigh}. Items are the \cnItems{} test tokens, labelled with their entity type. ``DR'' is accuracy against Reiss et al.'s resolved labels; ``CoNLL++'' is accuracy against the reference. The DR bias splits exactly into the hidden-error term and a term measuring disagreement between the two relabelings on audited tokens (Remark~\ref{rem:adjudicator}). ``Correct''/``repeat'' count the \cnHidden{} hidden errors on which a model gives the reference label or repeats the original one. Systems marked 2003 are CoNLL-2003 shared-task entries, whose outputs formed one of the audit's flagging ensembles; the others are later public transformer models. Appendix Table~\ref{tab:conllentity} repeats the analysis on entity tokens.}
+\label{tab:conll}
+\end{table}
+
+The analyses so far simulate audits. We now re-analyse a published one. \citet{reiss2020identifying} audited CoNLL-2003 with three model ensembles. They reviewed the entities on which few ensemble members agreed with the label and the spans that many members proposed but the label lacked, and they corrected some nearby labels they noticed along the way. Their release includes every candidate, every verdict and the corrections. CoNLL++ \citep{wang2019crossweigh} is an independent re-check of every test sentence by two annotators, with a final round where their annotations and the original disagreed; it used no model flags. Reiss et al.\ cite it only to compare error rates, and their candidates come only from their own ensembles. Both files contain the same 46{,}435 test tokens in the same order. We exclude \cnExcluded{} tokens affected by tokenization or sentence-boundary corrections, which CoNLL++ does not make, leaving \cnItems. The original uses IOB1 tags and CoNLL++ uses BIO2.
+
+We therefore take the token as the item and its entity type (none, person, location, organisation, miscellaneous) as the label, so the tag scheme does not matter. The adjudicated set $\Dset$ is every token covered by a span that Reiss et al.\ reviewed or corrected: \cnAdj{} tokens (\cnAdjPct\%), of which \cnIncidental{} were reviewed only incidentally. We apply their label corrections with their own code. The models are the \cnNentrant{} shared-task systems and \cnNhf{} public transformer models (Table~\ref{tab:conll}).
+
+Against CoNLL++, \cnRefErr{} tokens of the original test set have the wrong entity type. Only \cnRefErrIn{} of them lie in the audited set; \cnHidden{} (\cnHiddenPct\%) were never examined. Because the CoNLL++ annotators corrected the existing labels rather than labelling blind, their annotations are anchored towards the original, and \cnHidden{} is probably a lower bound on the hidden errors. The two expert relabelings also disagree on many audited tokens. Reiss et al.\ changed \cnReissChanges{} token types and CoNLL++ agrees with \cnAgreeChanges{} of those changes, leaving \cnDisagreeChanges{} tokens on which the two disagree, more than all the label errors that CoNLL++ finds. We do not know which relabeling is right on those tokens; the same anchoring means that some of them may be errors that CoNLL++ missed. We therefore call the second term of the decomposition the \emph{disagreement term}, not an error of the audit.
+
+Table~\ref{tab:conll} decomposes each model's DR bias exactly. The hidden-error term ranges from \cnHiddenMin{} to \cnHiddenMax~pp. It is positive for all models but RoBERTa-large, the strongest and most recent model, which answers more hidden errors correctly than it repeats. It averages \cnHiddenEntrantMean~pp for the 2003 systems, one of whose ensembles flagged the audit, and \cnHiddenHfMean~pp for the later models. This is consistent with lock-in, although the two ranges overlap. The 2003 systems do not share one bias, as Proposition~\ref{prop:panel}(b) would require of a union panel, because Reiss et al.\ flagged by vote thresholds rather than by the union rule. The disagreement term, from \cnAdjMin{} to \cnAdjMax~pp, dominates the total. Rankings are nearly unchanged. Kendall's $\tau_b$, which accounts for the \cnTies{} tie in the DR ranking, is \cnTau, with \cnNinv{} inversion among the \cnPairs{} pairs, between \cnInvA{} and \cnInvB, which differ by \cnInvGap~pp. This is consistent with \citet{reiss2020identifying}, who report no change in ranking.
+
+Token accuracy is dominated by non-entity tokens, which dilutes every effect. Restricting the items to the \cnEnt{} tokens whose original or reference label is an entity, a subset fixed in advance that contains every label error, the hidden-error term ranges from \cnEntHiddenMin{} to \cnEntHiddenMax~pp and the disagreement term from \cnEntAdjMin{} to \cnEntAdjMax~pp. Kendall's $\tau_b$ is \cnEntTau, with \cnEntNinv{} inversion (\cnEntInvA{} and \cnEntInvB, \cnEntInvGap~pp apart; Appendix Table~\ref{tab:conllentity}). The effects scale with the smaller denominator, but the picture is the same.
+
+Read with Theorem~\ref{thm:ident}, the published audit says less than its point estimates suggest. At an assumed concordant error rate of $0.2\%$, close to the true \cnConcRate\%, the identified interval for the most accurate model is \cnWidthTwo~pp wide. The audit puts \cnPairA{} \cnPairDR~pp ahead of \cnPairB, against \cnPairTrue~pp in truth, and the identified set for that difference contains zero once $\varepsilon\ge\cnPairEpsAmbig$. On this benchmark, then, hidden errors are real (more than a third of the label errors) but move token accuracies by at most \cnHiddenAbsMax~pp. The larger uncertainty comes from disagreement between expert relabelings, which no choice of items to adjudicate can remove.
+
+\subsection{Two-phase estimation}
+\label{sec:emp-twophase}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig_two_phase.pdf}
+\caption{Two-phase estimation with $\pi_\Dset=1$ and concordant sampling rate $\pi_C$, over \reps{} replicates of the phase-two sample (flagger GPT-4o in Scenario A; Llama 3 70B in Scenario B with Mixtral 8x7B labels). (a)~RMSE averaged over models; dashed lines show DR ($\pi_C=0$). (b)~Coverage of nominal 95\% Wald and conservative (Clopper--Pearson) intervals, averaged over models. (c)~Mean interval widths.}
+\label{fig:twophase}
+\end{figure}
+
+\begin{table}[t]
+\centering
+\scriptsize
+\input{tables/tab_two_phase}
+\caption{Two-phase estimation over \reps{} phase-two replicates; the DR row is deterministic. ``Adjudicated'' is the mean number of adjudicated items. $|\text{bias}|$ and RMSE are averaged over models, in pp; RMSE$_F$ is the flagger's RMSE. Coverage and width refer to nominal 95\% intervals averaged over models.}
+\label{tab:twophase}
+\end{table}
+
+We simulate the phase-two sample \reps{} times for each concordant sampling rate $\pi_C$, keeping the items fixed and adjudicating all discordant items. Results are in Figure~\ref{fig:twophase} and Table~\ref{tab:twophase}.
+
+The estimator is unbiased, as Theorem~\ref{thm:unbiased} states: the largest Monte Carlo bias over models and sampling rates is \tpMaxBiasA~pp in Scenario A and \tpMaxBiasB~pp in Scenario B. Removing the bias costs some adjudication. In Scenario B, DR's error for the flagger is \drFlagRmseB~pp. With $\pi_C=0.1$ the two-phase estimator reduces it to \tpFlagRmseTenB~pp RMSE, adjudicating on average \tpAdjTenB{} items instead of \tpAdjDRB.
+
+Scenario A shows the limits of the approach when label errors are rare. Only \hiddenGptA{} of the \nCA{} concordant items are mislabelled, so DR's bias is small: \drFlagRmseA~pp for the flagger. At small $\pi_C$ most phase-two samples contain no hidden error at all. The unbiased estimator then has a larger RMSE than DR, and its plug-in variance is often zero, so Wald intervals undercover severely (coverage \tpWaldCovOneA{} at $\pi_C=0.01$ and \tpWaldCovTwentyA{} at $\pi_C=0.2$). The conservative intervals cover in both scenarios (coverage at least \tpCpCovMinA{} in A and \tpCpCovMinB{} in B), at the price of width.
+
+In this regime, then, the honest summary of a DR audit is not a corrected accuracy. It is a corrected accuracy together with an interval wide enough to reflect how little has been learned about concordant items, which is what the simultaneous intervals of Theorem~\ref{thm:simultaneous} provide (Section~\ref{sec:emp-sim}). This is also the regime $m<1/\varepsilon$ of Theorem~\ref{thm:lower}, in which no design can estimate accuracies to better than the order of DR's own bias.
+
+\subsection{Simultaneous exact intervals}
+\label{sec:emp-sim}
+
+\begin{table}[t]
+\centering
+\scriptsize
+\input{tables/tab_simultaneous}
+\caption{Simultaneous exact intervals (Theorem~\ref{thm:simultaneous}, $\alpha=0.05$) in the design of Table~\ref{tab:twophase}, over \reps{} phase-two replicates. ``No error sampled'' is the share of replicates in which the concordant sample contains no label error. ``Simult.\ coverage'' is the share of replicates in which every accuracy and every pairwise difference is covered. Widths are means over models (accuracies) and over adjacent pairs of the true ranking. For comparison, ``CP'' is the per-model Clopper--Pearson width and ``Wald cov.'' the range of Wald coverage for the top pairs of Table~\ref{tab:twophase}. ``Certified'' is the share of the \simNadjA{} (A) or \simNadjB{} (B) adjacent pairs whose interval excludes zero; ``wrong'' is the share certified in the wrong direction.}
+\label{tab:simultaneous}
+\end{table}
+
+Table~\ref{tab:simultaneous} evaluates Theorem~\ref{thm:simultaneous} in the same design as Table~\ref{tab:twophase}. Simultaneous coverage of all accuracies and all pairwise differences is at least \simCovMinA{} in Scenario A and \simCovMinB{} in Scenario B at every sampling rate. No adjacent pair was ever certified in the wrong direction.
+
+In Scenario A, where label errors are rare, the simultaneous intervals for single accuracies are no wider than the per-model Clopper--Pearson intervals, and narrower at small sampling rates (\simWidthOneA{} against \cpWidthOneA~pp at $\pi_\Cset=0.01$). This holds even though they cover all models and pairs at once. At $\pi_\Cset=0.01$ the concordant sample contains no label error in \simNoErrOneA\% of replicates, so the intervals there are those of the procedure in Section~\ref{sec:rule}. For pairwise differences they are the only valid option: Wald intervals for the top pairs cover only \waldPairCovOneA{} of the time at $\pi_\Cset=0.01$. Validity costs resolution, however. Adjacent models in the ranking differ by fractions of a point, so the intervals certify \simCertFiveA\% of adjacent pairs at $\pi_\Cset=0.05$ and \simCertHalfA\% at $\pi_\Cset=0.5$, out of the \simTrueCertA\% that have a strictly positive true difference.
+
+In Scenario B, where hidden errors are common, the intervals remain valid but are wide (\simWidthFiveB~pp at $\pi_\Cset=0.05$), and almost no pair is certified. Here the Wald intervals are both valid and much narrower (Table~\ref{tab:twophase}). This is the division of labour that Proposition~\ref{prop:width} predicts.
+
+\subsection{Allocation at a fixed budget}
+\label{sec:emp-alloc}
+
+\begin{table}[t]
+\centering
+\scriptsize
+\input{tables/tab_allocation}
+\caption{RMSE (pp, exact design variance averaged over models) at expected budget $B$ adjudications, expressed as a multiple of the DR budget $|\Dset|$. Designs: uniform random sampling of all items; two-phase with every discordant item adjudicated ($\pi_\Dset=1$, only possible when $B>|\Dset|$); and the Neyman allocation of Proposition~\ref{prop:neyman}, computed with oracle stratum error rates.}
+\label{tab:allocation}
+\end{table}
+
+Table~\ref{tab:allocation} compares three unbiased designs at equal expected budget. The Neyman allocation is always best. At the DR budget ($B=|\Dset|$) it attains an RMSE of \allocNeyOneA~pp in Scenario A, against \allocUnifOneA~pp for uniform sampling, and \allocNeyOneB{} against \allocUnifOneB~pp in Scenario B. It adjudicates only \allocNeyPiDOneA{} (A) and \allocNeyPiDOneB{} (B) of the flagged items and spends the rest of the budget on concordant items.
+
+The common practice of adjudicating every flagged item first is not efficient for estimation. In Scenario B, at budgets up to $1.5|\Dset|$, it is worse than ignoring the flags altogether and sampling uniformly. The informative-error rates are $e_\Dset=\eDA$ and $e_\Cset=\eCA$ in A, and $e_\Dset=\eDB$ and $e_\Cset=\eCB$ in B. Their square roots set the optimal ratio of sampling rates. The oracle rates are unknown in practice, so these numbers are an upper bound on the achievable gain. Estimating the stratum error rates from adjudications in the same sample makes the design outcome-dependent, so the variance formula of Theorem~\ref{thm:unbiased} does not apply as stated (Section~\ref{sec:twophase}); rates carried over from earlier audits avoid this, and we do not quantify how much of the gain either approach recovers.
+
+\subsection{Sensitivity analysis of a DR audit}
+\label{sec:emp-sens}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig_sensitivity.pdf}
+\caption{Sharp identified sets (Theorem~\ref{thm:ident}) for the accuracy difference between a model and the flagger, as a function of the assumed bound $\varepsilon$ on the label-error rate among concordant items. The dashed line marks the true difference and the dotted line the true concordant error rate. The DR value is always the lower endpoint (Corollary~\ref{cor:advantage}).}
+\label{fig:sensitivity}
+\end{figure}
+
+Figure~\ref{fig:sensitivity} applies Theorem~\ref{thm:ident} to two DR audits as a reader of a published audit would, using only the DR data and an assumed $\varepsilon$.
+
+In Scenario A (flagger GPT-4o), DR reports that Claude~3~Opus is \sensPairDRA~pp more accurate than the flagger; the truth is \sensPairTrueA~pp. Because DR understates advantages over the flagger, the sign of this comparison is identified for every $\varepsilon$.
+
+In Scenario B (flagger Llama~3~70B), DR places GPT-4~Turbo \sensPairDRBabs~pp below the flagger, whereas GPT-4~Turbo is in fact \sensPairTrueB~pp more accurate. For every $\varepsilon$ up to 0.05 the identified set lies entirely below zero, so a reader who trusts a concordant error rate of a few percent would accept the flagger's lead. The set first contains the true difference at $\varepsilon=\sensEpsCoverB$, while the true concordant error rate is \sensTrueRateB. Sensitivity analysis therefore protects a reader only if the assumed $\varepsilon$ is realistic, and DR data cannot tell the reader what is realistic. That is the argument for sampling concordant items. Online Appendix Table~OA.2 reports per-model bounds.
+
+\paragraph{The rate in $m$.} The empirical RMSE of the flagger's estimate (Llama~3~70B, Scenario B) is within a factor of \rateRatioMin--\rateRatioMax{} of the design standard error~\eqref{eq:upper} at every $m$ from 10 to 1{,}000, confirming the $m^{-1/2}$ rate; the lower bound of Theorem~\ref{thm:lower} has the same slope (Online Appendix Figure~OA.1).

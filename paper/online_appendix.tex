@@ -1,0 +1,84 @@
+\documentclass[twoside,11pt]{article}
+\usepackage[preprint,abbrvbib]{jmlr2e}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{float}
+\input{numbers}
+\renewcommand{\thetable}{OA.\arabic{table}}
+\renewcommand{\thefigure}{OA.\arabic{figure}}
+\usepackage{graphicx}
+\newcommand{\Dset}{\Delta}
+\ShortHeadings{Discrepant Resolution in Benchmark Relabelling: Online Appendix}{}
+\firstpageno{1}
+\begin{document}
+\title{Online Appendix to ``Only Checking Where the Model Disagrees:\\ Discrepant-Resolution Bias in Benchmark Relabelling''}
+\maketitle
+
+This online appendix describes the data processing and the literature-coding protocol, and gives two tables and a figure that support Section~7 of the paper. Code and data are at \url{https://github.com/unluckyjet/discrepant-resolution}.
+
+\section{Data processing (MMLU-Redux and HELM)}
+
+
+MMLU-Redux 2.0 contains 5{,}700 items. The analysis set has \nItems{} items: the \nOk{} items annotated as correct and the \nWrongGt{} items annotated with a wrong ground truth and a parseable corrected answer. We exclude the following items:
+\begin{itemize}
+\item \nBadQ{} with bad question clarity;
+\item \nMulti{} with multiple correct answers;
+\item \nNoCorrect{} with no correct answer;
+\item \nExpert{} marked ``expert'';
+\item \nBadOpt{} with bad option clarity;
+\item \nUnparsed{} marked as wrong ground truth whose suggested answer could not be parsed;
+\item \nSameAsLabel{} marked as wrong ground truth whose suggested answer equals the MMLU label;
+\item \nNoMatch{} that could not be matched to a HELM instance;
+\item \nLabelDiffers{} whose MMLU-Redux copy of the label differs from HELM's.
+\end{itemize}
+The suggested answer appears in several formats (an index, a float, a letter); a parser handles all of them.
+
+We downloaded HELM v1.3.0 per-instance predictions for all \nModels{} models and 57 subjects (\helmInstances{} instances per model; method \texttt{multiple\_choice\_joint}). A prediction is parsed as an option letter only if the output begins with a bare letter A--D, optionally in parentheses and not followed by another letter. Every other output is invalid and counts as wrong under every label. Our parsed correctness agrees with HELM's exact-match scores on all but \helmDisagreeTotal{} of the $\nModels\times\helmInstances$ instance predictions (at most \helmDisagreeMax{} per model). The disagreements are items with duplicated option texts, which HELM scores by text.
+
+Invalid outputs in the analysis set range from zero (for \invalidZero{} models) to \invalidMax{} (\invalidMaxModel). In Scenario B an invalid labeler output becomes a deliberately wrong label. All scripts, the derived item-level table and the results files are released.
+
+\section{Literature coding protocol}
+
+
+Candidate studies were collected from Semantic Scholar searches for benchmark relabelling, label-error audits and benchmark cleaning, and from the reference lists of the studies found. For each study we read the methods section in full text. We then recorded the following:
+\begin{itemize}
+\item the adjudication design, in the categories of Section~6 of the paper;
+\item the flagging model or algorithm;
+\item whether a flagging model was also evaluated on the corrected labels;
+\item whether accuracies or rankings were re-reported;
+\item whether the paper acknowledges that unflagged items may be mislabelled.
+\end{itemize}
+Each code is supported by a verbatim quote with its page. A script checks every quote against the extracted full text, and all quotes matched. Confidence was recorded as high or medium; no study was coded without a supporting quote. Studies whose phases follow different designs are coded OTHER. The coding table, with quotes, is released as \texttt{data/lit/design\_coding.csv}.
+
+
+\section{Additional tables}
+
+\begin{table}[H]
+\centering
+\scriptsize
+\input{tables/tab_flaggers_A_full}
+\caption{Scenario A (original MMLU labels): DR audits for every single-model flagger, ordered by true accuracy.}
+
+\end{table}
+
+\begin{table}[H]
+\centering
+\scriptsize
+\input{tables/tab_sensitivity}
+\caption{Sharp identified intervals (accuracy, \%) for the six most accurate models and the flagger (F) under assumed bounds $\varepsilon$ on the concordant label-error rate (Theorem~6 of the paper). Flaggers: GPT-4o in Scenario A, Llama 3 70B in Scenario B (Mixtral 8x7B labels).}
+
+\end{table}
+
+\section{The rate in $m$}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.55\linewidth]{figures/fig_rate.pdf}
+\caption{Error of the two-phase estimate of the flagger's accuracy (Llama 3 70B, Scenario B with Mixtral 8x7B labels) against the expected number $m$ of concordant adjudications, with $\pi_\Dset=1$, over \reps{} replicates. The solid line is the design standard error (equation (3) of the paper); the dashed line is the minimax lower bound of Theorem~9 of the paper, evaluated at the observed $\gamma=\rateGamma$ and $\varepsilon=\rateEps$.}
+
+\end{figure}
+
+\end{document}

@@ -1,0 +1,116 @@
+\section{Proofs}
+\label{app:proofs}
+
+Throughout, $\Pn$ denotes the proportion of items. Until the proof of Theorem~\ref{thm:lower}, all randomness comes from the phase-two design.
+
+\paragraph{Proof of Proposition~\ref{prop:bias}.} By definition,
+\[
+\theta^\DR_k-\theta_k=\frac1n\sum_{i=1}^n\big(\1\{M_{ik}=D_i\}-\1\{M_{ik}=Y_i\}\big).
+\]
+For $i\in\Dset$, $D_i=Y_i$ and the summand is zero. For $i\in\Cset$ with $L_i=Y_i$, $D_i=L_i=Y_i$ and the summand is again zero. For $i\in J$, that is $i\in\Cset$ with $L_i\ne Y_i$, $D_i=L_i$ and the summand is $\1\{M_{ik}=L_i\}-\1\{M_{ik}=Y_i\}$. Summing gives~\eqref{eq:bias}. The naive bias follows from the same computation with $D$ replaced by $L$ on all items: the summand is nonzero only where $L_i\ne Y_i$. Splitting these items into flagged and unflagged ones shows that DR removes exactly the flagged part. \hfill\BlackBox
+
+\paragraph{Proof of Corollary~\ref{cor:flagger}.} For a single flagger, $i\in\Cset$ means $M_{if}=L_i$. On $J$ we also have $L_i\ne Y_i$, so $\1\{M_{if}=L_i\}=1$ and $\1\{M_{if}=Y_i\}=0$. By~\eqref{eq:bias}, $\theta^\DR_f-\theta_f=\Pn(J)$. For any $k$ each summand in~\eqref{eq:bias} lies in $\{-1,0,1\}$ and is nonzero only on $J$, so $|\theta^\DR_k-\theta_k|\le\Pn(J)$. \hfill\BlackBox
+
+\paragraph{Proof of Corollary~\ref{cor:advantage}.} By Proposition~\ref{prop:bias} and Corollary~\ref{cor:flagger},
+\[
+(\theta^\DR_k-\theta_k)-(\theta^\DR_f-\theta_f)=\Pn(J,M_k=L)-\Pn(J,M_k=Y)-\Pn(J)=-\Pn(J,M_k\ne L)-\Pn(J,M_k=Y),
+\]
+which is~\eqref{eq:advantage}. Rearranging, $\theta^\DR_k-\theta^\DR_f=(\theta_k-\theta_f)-\Pn(J,M_k\neq L)-\Pn(J,M_k=Y)$. This is negative, so that DR ranks $f$ strictly above $k$, if and only if $\theta_k-\theta_f<\Pn(J,M_k\neq L)+\Pn(J,M_k=Y)$. Adding the requirement $\theta_k>\theta_f$ gives the stated condition. \hfill\BlackBox
+
+\paragraph{Proof of Proposition~\ref{prop:panel}.}
+\begin{enumerate}
+\item[(a)] $\Dset_G$ is a union over $G$, so it grows with $G$. Hence $\Cset_{G'}\subseteq\Cset_G$, and $J_{G'}=\Cset_{G'}\cap\{L\ne Y\}\subseteq J_G$.
+\item[(b)] On $\Cset_G$, every member $g$ satisfies $M_{ig}=L_i$, so the argument of Corollary~\ref{cor:flagger} applies with $J=J_G$. Since all members share the same bias, their pairwise differences are unchanged.
+\item[(c)] This is Proposition~\ref{prop:bias} with $\Dset=\Dset_G$. \hfill\BlackBox
+\end{enumerate}
+
+\paragraph{Proof of Theorem~\ref{thm:ident}.} Let $y\in\mathcal Y(\eta)$ and $H=\{i\in\Cset:y_i\ne L_i\}$, so that $|H|\le\lfloor\eta n\rfloor$. Since $y=Y$ on $\Dset$ and $y=L$ on $\Cset\setminus H$,
+\[
+\theta_k(y)-\theta^\DR_k=\frac1n\sum_{i\in H}\big(\1\{M_{ik}=y_i\}-\1\{M_{ik}=L_i\}\big).
+\]
+Each summand lies in $\{-1,0,1\}$:
+\begin{itemize}
+\item it equals $-1$ only if $M_{ik}=L_i$;
+\item it equals $+1$ only if $M_{ik}=y_i\ne L_i$, which requires $M_{ik}\notin\{L_i,\inv\}$.
+\end{itemize}
+Hence $\theta_k(y)-\theta^\DR_k\ge-\min\{|H|,|\{i\in\Cset:M_{ik}=L_i\}|\}/n\ge-\min\{\bar\eta,\Pn(\Cset,M_k=L)\}$, and similarly for the upper bound.
+
+\emph{The endpoints are attained.} For the lower endpoint, take $H$ to be $\min\{\lfloor\eta n\rfloor,|\{i\in\Cset:M_{ik}=L_i\}|\}$ items of $\Cset$ with $M_{ik}=L_i$, and set $y_i$ to any label different from $L_i$ (possible since $c\ge2$). For the upper endpoint, take $H$ inside $\{i\in\Cset: M_{ik}\notin\{L_i,\inv\}\}$ and set $y_i=M_{ik}$. Every intermediate multiple of $1/n$ is attained by using fewer items, which proves the equality.
+
+\emph{Pairwise differences.} For a pair $(k,l)$, the difference $\theta_k(y)-\theta_l(y)-(\theta_k^\DR-\theta_l^\DR)$ equals $n^{-1}\sum_{i\in H}g_i(y_i)$, where
+\[
+g_i(y)=\big(\1\{M_{ik}=y\}-\1\{M_{ik}=L_i\}\big)-\big(\1\{M_{il}=y\}-\1\{M_{il}=L_i\}\big).
+\]
+Items contribute separately and each uses one unit of the budget $\lfloor\eta n\rfloor$. The maximum is therefore attained by choosing, for each concordant item, the label $y\ne L_i$ that maximises $g_i(y)$, and then keeping the $\lfloor\eta n\rfloor$ items with the largest positive values. The minimum is attained symmetrically. This greedy rule is exact because all weights are equal. \hfill\BlackBox
+
+\paragraph{Proof of Theorem~\ref{thm:unbiased}.} Condition on the phase-one data. The $\pi_i$ are then fixed, and the $R_i$ are independent Bernoulli$(\pi_i)$ variables, independent of the labels. Since $\E[R_i/\pi_i]=1$ and $n^{-1}\sum_i r_{ik}=\theta_k-\theta^L_k$, we get $\E[\hat\theta_k]=\theta^L_k+\theta_k-\theta^L_k=\theta_k$. By independence,
+\[
+\mathrm{Var}(\hat\theta_k)=n^{-2}\sum_i r_{ik}^2\,\mathrm{Var}(R_i)/\pi_i^2=n^{-2}\sum_i r_{ik}^2(1-\pi_i)/\pi_i ,
+\]
+and $\E[R_i(1-\pi_i)\pi_i^{-2}r_{ik}^2]=(1-\pi_i)\pi_i^{-1}r_{ik}^2$. The statements for differences follow by linearity. \hfill\BlackBox
+
+\paragraph{Proof of Proposition~\ref{prop:neyman}.} With stratum-constant probabilities, $\sum_k\mathrm{Var}(\hat\theta_k)=n^{-2}\sum_h(1/\pi_h-1)A_h$. This is convex in $(\pi_h)$, and the constraints are linear. The Karush--Kuhn--Tucker conditions give $A_h/\pi_h^2=\lambda' N_h+\mu_h$, where $\mu_h\ge0$ is the multiplier of the constraint $\pi_h\le1$ and is zero when that constraint is slack. Hence $\pi_h=\min\{1,\lambda\sqrt{A_h/N_h}\}$, with $\lambda$ chosen to meet the budget. When neither cap binds, the ratio is $\sqrt{(A_\Cset/N_\Cset)/(A_\Dset/N_\Dset)}=\sqrt{e_\Cset/e_\Dset}$. \hfill\BlackBox
+
+\paragraph{Derivation of~\eqref{eq:upper}.} For the flagger, $r_{if}=-\1\{i\in J\}$ on $\Cset$, and the discordant stratum contributes no variance because $\pi_\Dset=1$. Theorem~\ref{thm:unbiased} gives
+\[
+\mathrm{Var}(\hat\theta_f)=n^{-2}(1-\pi_\Cset)|J|/\pi_\Cset .
+\]
+Substituting $\pi_\Cset=m/|\Cset|$ yields $\gamma_n^2\varepsilon_n(1-\pi_\Cset)/m$.
+
+\paragraph{Proof of Theorem~\ref{thm:lower}.} \emph{Two hypotheses.} Fix any law $Q$ of the observables $(X,L,M_1,\dots,M_K)$ with $Q(M_f=L)=\gamma$, and any conditional law of $Y$ on the event $\{M_f\ne L\}$. Let $y^\star(\ell)=(\ell\bmod c)+1\ne\ell$. For $j\in\{0,1\}$, let $P_j$ have observables distributed as $Q$, the fixed conditional law of $Y$ on $\{M_f\neq L\}$, and, on $\{M_f=L\}$,
+\[
+Y=y^\star(L)\ \text{ with probability } p_j,\qquad Y=L \text{ otherwise},
+\]
+independently of the observables. Here $p_0=\varepsilon$ and $p_1=\varepsilon-\delta$ with $0<\delta\le\varepsilon/2$. Both laws belong to $\mathcal P(\gamma,\varepsilon)$, and $\theta_f(P_0)-\theta_f(P_1)=-\gamma\delta$, because on $\{M_f=L\}$ the flagger is correct exactly when $Y=L$.
+
+\emph{The two hypotheses are hard to distinguish.} Under both laws, the observables of all items and the reference labels of discordant items have the same distribution. The only difference lies in the revealed labels of adjudicated concordant items. Each such label reveals an independent Bernoulli$(p_j)$ hidden-error indicator, independent of everything observed before the item was selected. By the chain rule for Kullback--Leibler divergence over the sequence of observations (the same argument as Wald's identity for sequential designs), the divergence between the laws of the observed data is
+\[
+\mathrm{KL}(P_0^{\rm obs}\,\|\,P_1^{\rm obs})=\E_0[N_\Cset]\;\mathrm{kl}(p_0,p_1)\le m\,\mathrm{kl}(p_0,p_1).
+\]
+Here $N_\Cset$ is the number of concordant adjudications and $\mathrm{kl}$ the Bernoulli divergence. Using $\mathrm{kl}(p_0,p_1)\le(p_0-p_1)^2/\{p_1(1-p_1)\}$, together with $p_1\ge\varepsilon/2$ and $1-p_1\ge1/2$ (since $\varepsilon\le1/2$), we obtain $\mathrm{KL}\le4m\delta^2/\varepsilon$. Choosing $\delta=\sqrt{\varepsilon/(4m)}$, which satisfies $\delta\le\varepsilon/2$ because $m\ge1/\varepsilon$, gives $\mathrm{KL}\le1$.
+
+\emph{Le Cam's two-point argument.} Let $s=\gamma\delta$ and $A=\{|\hat\theta-\theta_0|<s/2\}$. On $A$ we have $|\hat\theta-\theta_1|>s/2$. Hence
+\[
+\E_0|\hat\theta-\theta_0|+\E_1|\hat\theta-\theta_1|\ge\tfrac s2\big(P_0(A^c)+P_1(A)\big)\ge\tfrac s2\big(1-\mathrm{TV}(P_0^{\rm obs},P_1^{\rm obs})\big).
+\]
+By the Bretagnolle--Huber inequality, $1-\mathrm{TV}\ge\frac12e^{-\mathrm{KL}}\ge\frac1{2e}$ \citep{tsybakov2009introduction}. Therefore
+\[
+\max_j\E_j|\hat\theta-\theta_j|\ge\frac{s}{8e}=\frac{\gamma}{16e}\sqrt{\frac{\varepsilon}{m}} .
+\]
+\emph{The case $m<1/\varepsilon$.} Take $\delta=\varepsilon/2$ instead. Then $\mathrm{KL}\le4m\delta^2/\varepsilon=m\varepsilon<1$, and the same argument gives $\max_j\E_j|\hat\theta-\theta_j|\ge\gamma\varepsilon/(16e)$. Combining the two cases gives the bound $\frac{\gamma}{16e}\min\{\varepsilon,\sqrt{\varepsilon/m}\}$.
+
+\emph{The case $m=0$.} With no concordant adjudication, the same construction with $\delta=\varepsilon$ makes the observed laws identical, so $\E_0|\hat\theta-\theta_0|+\E_1|\hat\theta-\theta_1|=\E_0\big[|\hat\theta-\theta_0|+|\hat\theta-\theta_1|\big]\ge|\theta_0-\theta_1|=\gamma\varepsilon$ by the triangle inequality. The maximum risk is then at least $\gamma\varepsilon/2$: the worst-case error of any estimator based on DR data does not shrink as more discordant items are adjudicated. \hfill\BlackBox
+
+\paragraph{Proof of Theorem~\ref{thm:lowerfp}.} We lower-bound the maximum risk by a Bayes risk. Under hypothesis $j\in\{0,1\}$, let each concordant item be a hidden error independently with probability $p_j$, with $p_0=\varepsilon/2$ and $p_1=\varepsilon/2-\delta$, $0<\delta\le\varepsilon/4$; hidden errors take the label $y^\star(L)$ as in the proof of Theorem~\ref{thm:lower}. Everything observed except the revealed labels of adjudicated concordant items is fixed. Each such label reveals an independent Bernoulli$(p_j)$ indicator, independent of everything observed before the item was selected, and at most $m$ are revealed. As in the proof of Theorem~\ref{thm:lower}, $\mathrm{KL}\le m\,\mathrm{kl}(p_0,p_1)\le m\delta^2/\{p_1(1-p_1)\}\le8m\delta^2/\varepsilon$, using $p_1\ge\varepsilon/4$ and $1-p_1\ge1/2$. Choosing $\delta=\sqrt{\varepsilon/(8m)}$, which satisfies $\delta\le\varepsilon/4$ because $m\ge2/\varepsilon$, gives $\mathrm{KL}\le1$.
+
+Write $\theta_f(J)=c-|J|/n$, where $c$ is fixed. Let $m_s\le m$ be the number of adjudicated concordant items and $h$ the number of hidden errors among them, and write $|J|=h+W$, with $W$ the number of hidden errors among the $N_\Cset-m_s$ unadjudicated concordant items. Conditionally on the observed data, the indicators of the unadjudicated items are still independent Bernoulli$(p_j)$, so $\E_j[W\mid\text{data}]=(N_\Cset-m_s)p_j$. By Jensen's inequality, for any estimator $\hat\theta$,
+\[
+\E_j\big[|\hat\theta-\theta_f(J)|\,\big|\,\text{data}\big]\ge|\hat\theta-\mu_j|,\qquad\mu_j=c-\{h+(N_\Cset-m_s)p_j\}/n .
+\]
+The centres $\mu_0,\mu_1$ depend on the data, but $|\mu_0-\mu_1|=(N_\Cset-m_s)\delta/n\ge s:=(N_\Cset-m)\delta/n$ pointwise. The two-point argument of Theorem~\ref{thm:lower}, with $A=\{|\hat\theta-\mu_0|<s/2\}$, therefore gives a Bayes risk of at least $\frac12\sum_j\E_j|\hat\theta-\theta_f(J)|\ge s/(8e)$.
+
+Finally, $|J|$ is Binomial$(N_\Cset,p_j)$ with mean at most $\varepsilon N_\Cset/2$. By the multiplicative Chernoff bound, $P(|J|>\varepsilon N_\Cset)\le e^{-\varepsilon N_\Cset/6}$. Taking $\hat\theta\in[0,1]$ without loss of generality, so that the loss is at most one, the maximum risk over $\mathcal J(\varepsilon)$ is at least the Bayes risk minus $e^{-\varepsilon N_\Cset/6}$. Substituting $s/(8e)=\frac{N_\Cset-m}{n}\sqrt{\varepsilon/(8m)}/(8e)$ gives the claim. \hfill\BlackBox
+
+\paragraph{Proof of Theorem~\ref{thm:simultaneous}.} Under Poisson sampling, conditionally on $m$, the sampled concordant items form a simple random sample of size $m$ from $\Cset$, so $h$ follows the hypergeometric distribution with parameters $(|\Cset|,K,m)$. The function $k\mapsto\mathrm{HG}(h;|\Cset|,k,m)$ is non-increasing, so $\{K>U\}=\{\mathrm{HG}(h;|\Cset|,K,m)\le\alpha\}$. Since $\mathrm{HG}(\cdot;|\Cset|,K,m)$ is the distribution function of $h$, we have $P(\mathrm{HG}(h;|\Cset|,K,m)\le\alpha)\le\alpha$, hence $P(K\le U)\ge1-\alpha$. On the event $K\le U$, the unsampled concordant items contain $K-h\le U-h=B$ label errors. The true label vector agrees with $Y$ on $A$ by definition, so it lies in $\mathcal Y_B$. Every $I_k$ and $I_{kl}$ is a range of a function over $\mathcal Y_B$, and therefore contains the corresponding true value on that event; this gives simultaneous coverage. The greedy computation is that of Theorem~\ref{thm:ident}: items in $\Cset\setminus S$ contribute separately, each uses one unit of the budget $B$, and labels on $A$ are fixed. \hfill\BlackBox
+
+\paragraph{Proof of Proposition~\ref{prop:width}.} By the proof of Theorem~\ref{thm:ident}, each changed label moves $\theta_k$ by at most $1/n$ and $\theta_k-\theta_l$ by at most $2/n$, in either direction, which gives the width bounds. If $h=0$, then $\mathrm{HG}(0;N,k,m)=\binom{N-k}{m}/\binom{N}{m}\le(1-k/N)^m\le e^{-km/N}$, which is at most $\alpha$ once $k\ge N\log(1/\alpha)/m$. Hence $U\le|\Cset|\log(1/\alpha)/m$. Since the sampled items carry no label errors, $\mathcal Y_B$ is contained in the set $\mathcal Y(\eta)$ of Theorem~\ref{thm:ident} with $\eta=U/n\le\gamma_n\log(1/\alpha)/m$, so the intervals are contained in its bounds. \hfill\BlackBox
+
+\paragraph{Proof of Lemma~\ref{lem:width}.} Let $H_0$ be the configuration $J=\emptyset$ and $H_1$ a uniformly random hidden-error set of size $k^\star$ in $\Cset$ (on $\Cset$ the flagger agrees with $L$, so every hidden error lowers $\theta_f$ by exactly $1/n$). Then $\theta_f(H_1)=\theta_f(H_0)-k^\star/n$, a deterministic difference. Let $Z$ denote the observed data. Under $H_0$ the sample never contains an error. Under $H_1$ the sample contains no error with probability $q=\binom{N-k^\star}{m}/\binom Nm\ge2\alpha$. Conditionally on that event, the sampled set is uniform over $m$-subsets (each subset avoids a uniformly random $k^\star$-set with the same probability), and the revealed labels all equal $L$; hence $Z$ has the same conditional law as under $H_0$, which we call $Q$.
+
+Coverage at least $1-\alpha$ for every configuration implies coverage at least $1-\alpha$ averaged over the random configuration of $H_1$. So $P_1(\theta_f(H_1)\in I(Z),\ \text{no error})\ge q-\alpha$, and therefore $Q(\theta_f(H_1)\in I)\ge(q-\alpha)/q\ge\frac12$. Also $Q(\theta_f(H_0)\in I)\ge1-\alpha$. Hence $Q$ puts probability at least $\frac12-\alpha$ on intervals containing both values, and $\E_Q|I|\ge(\frac12-\alpha)k^\star/n$.
+
+For the bound on $k^\star$: $\binom{N-k}{m}/\binom Nm=\prod_{i=0}^{m-1}(N-k-i)/(N-i)\ge(1-k/(N-m+1))^m$. This is at least $2\alpha$ whenever $k\le(N-m+1)(1-(2\alpha)^{1/m})$. Since $1-e^{-x}\ge x/(1+x)$, the latter is at least $(N-m+1)x/(1+x)$. \hfill\BlackBox
+
+\paragraph{Proof of Proposition~\ref{prop:rule}.} On $\Cset$, $r_{ik}=\1\{M_{ik}=Y_i\}-\1\{M_{ik}=L_i\}$ is $-1$ on $J\cap\{M_k=L\}$, $+1$ on $J\cap\{M_k=Y\}$ and $0$ elsewhere. Proposition~\ref{prop:bias} gives the DR bias $\gamma_n(a_k-c_k)$. Theorem~\ref{thm:unbiased} with $\pi_\Dset=1$ gives the variance $n^{-2}(1-\pi_\Cset)\pi_\Cset^{-1}|\Cset|(a_k+c_k)=\gamma_n^2(1-\pi_\Cset)(a_k+c_k)/m$. Comparing the squared bias with this variance gives the threshold. \hfill\BlackBox
+
+\section{Additional results}
+
+Table~\ref{tab:conllentity} gives the CoNLL-2003 re-analysis on entity tokens. The full Scenario A flagger results and per-model sensitivity bounds are in the Online Appendix (Tables~OA.1 and OA.2).
+
+\begin{table}[H]
+\centering
+\scriptsize
+\input{tables/tab_conll_entity}
+\caption{CoNLL-2003 re-analysis restricted to the \cnEnt{} tokens whose original or reference label is an entity (Section~\ref{sec:emp-conll}). Columns as in Table~\ref{tab:conll}.}
+\label{tab:conllentity}
+\end{table}

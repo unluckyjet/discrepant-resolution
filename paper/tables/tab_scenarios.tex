@@ -1,0 +1,13 @@
+\begin{tabular}{lrrrrrrr}
+\toprule
+Labels & Label err.\ (\%) & Hidden $|J|$ & Flagger inflation, pp & Flaggers & Max ranks & Kendall $\tau$ & $P(J)$ / indep. \\
+ & & (range) & median [min, max] & favoured & gained & (range) & (median) \\
+\midrule
+(A) original MMLU & 1.8 & 8--30 & 0.31 [0.15, 0.55] & 7/37 & 3 & 0.99--1.00 & 1.8 \\
+\midrule
+Mixtral 8x7B & 26.5 & 284--698 & 10.7 [5.2, 12.9] & 33/36 & 25 & 0.80--0.98 & 4.8 \\
+Llama 2 70B & 28.9 & 285--753 & 10.9 [5.3, 13.9] & 33/36 & 25 & 0.78--0.97 & 4.4 \\
+GPT-3.5 Turbo & 29.6 & 274--754 & 10.3 [5.1, 13.9] & 33/36 & 27 & 0.80--0.97 & 4.3 \\
+Qwen1.5 72B & 21.0 & 265--556 & 9.0 [4.9, 10.3] & 32/36 & 13 & 0.88--0.98 & 4.9 \\
+\bottomrule
+\end{tabular}

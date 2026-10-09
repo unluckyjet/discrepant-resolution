@@ -1,0 +1,16 @@
+data/raw/
+data/lit/pdfs/
+data/lit/txt/
+data/lit/txt_pages/
+data/lit/web/
+.venv/
+__pycache__/
+paper/*.aux
+paper/*.log
+paper/*.blg
+paper/*.out
+paper/*.bbl
+review/
+data/feasibility/*
+!data/feasibility/report.md
+results/*.log
